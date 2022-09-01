@@ -31,6 +31,7 @@ class IngressUpdater {
     void this.config.watchPods();
     http
       .createServer((request, response) => {
+        console.log("incomming Request");
         const headers = { "Content-Type": "application/json" };
         if (request.method != "GET") {
           response.writeHead(404, headers);
