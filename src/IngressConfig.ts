@@ -37,6 +37,8 @@ export class IngressConfig {
     return null;
   }
 
+  lastupdateIngressMessage = "";
+
   async updateIngress() {
     // virtualHost
     if (!this.ingress) return;
@@ -133,7 +135,12 @@ export class IngressConfig {
       if (response.statusCode !== 200) {
         console.log(`Update ingress ${this.namespace}.${this.ingressName} update failed code: ${response.statusCode}`);
       } else {
-        console.log(`update ingress ${this.namespace}.${this.ingressName} with routes:\n${routes.join("\n")}`)
+        const msg = `Update ingress ${this.namespace}.${this.ingressName} with ${routes.length} routes:\n${routes.join("\n")}`;
+        if (msg !== this.lastupdateIngressMessage) {
+          // TODO compare with previous ingress bf update
+          console.log(msg)
+          this.lastupdateIngressMessage = msg
+        }
       }
     } catch (e) {
       await logWatchError(`PUT /apis/networking.k8s.io/v1/namespaces/${this.namespace}/ingresses/${name}`, e, 0);

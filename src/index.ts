@@ -27,7 +27,8 @@ class IngressUpdater {
         console.log(e.stack);
       }
     }
-    this.config.watchIngresses();
+    void this.config.watchIngresses();
+    void this.config.watchPods();
     http
       .createServer((request, response) => {
         const headers = { "Content-Type": "application/json" };
@@ -58,7 +59,6 @@ class IngressUpdater {
         }
       })
       .listen(this.config.HTTP_PORT);
-    this.config.watchPods();
   }
 }
 

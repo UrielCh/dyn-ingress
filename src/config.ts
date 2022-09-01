@@ -177,7 +177,6 @@ export class Config {
   async ensurePodLabel(pod: V1Pod): Promise<IngressRouteSetConf | null> {
     const { metadata, spec } = pod;
     if (!spec || !metadata) return null;
-
     if (!metadata.labels) metadata.labels = {};
     const conf = this.visitPod(pod);
     if (!conf || !this.LABEL_ALL) return null;

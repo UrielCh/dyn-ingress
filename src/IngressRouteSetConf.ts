@@ -31,7 +31,7 @@ export class IngressRouteSetConf {
   public targetPort = 0;
   public generateName = "-";
 
-  constructor(private parent: IngressConfig) {}
+  constructor(private parent: IngressConfig) { }
 
   get namepace(): string {
     return this.parent.namespace;
@@ -91,6 +91,7 @@ export class IngressRouteSetConf {
     } else {
       if (isPodValid(pod)) {
         this.nodeList.set(metadata.name, { nodeName: spec.nodeName || "---" });
+        this.addPodService(pod);
       } else {
         // pod not ready yet
         this.nodeList.delete(metadata.name);
