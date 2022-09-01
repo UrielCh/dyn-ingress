@@ -59,7 +59,7 @@ class IngressUpdater {
         }
       })
       .listen(this.config.HTTP_PORT, () => {
-        console.log(`Listening to port: ${this.config.HTTP_PORT}`)
+        console.log(`Listening to port: ${this.config.HTTP_PORT} for service "${this.config.selfServiceName}"`)
       });
   }
 }

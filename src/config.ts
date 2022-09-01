@@ -62,7 +62,7 @@ export class Config {
     if (p === -1) throw Error("invalid configuration SELF_SELECTOR must looks like app=dyn-ingress");
     const key = this.SELF_SELECTOR.substring(0, p);
     const value = this.SELF_SELECTOR.substring(p + 1);
-    this.#selfServiceName = `dyn-ingress-${value}-service`;
+    this.#selfServiceName = `dynx-${value}-service`;
     const body: V1Service = {
       apiVersion: "v1",
       kind: "Service",
