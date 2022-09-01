@@ -58,9 +58,11 @@ class IngressUpdater {
           }
         }
       })
-      .listen(this.config.HTTP_PORT);
+      .listen(this.config.HTTP_PORT, () => {
+        console.log(`Listening to port: ${this.config.HTTP_PORT}`)
+      });
   }
 }
-
+console.log("Stating V2");
 const updater = new IngressUpdater();
 void updater.start();
