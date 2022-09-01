@@ -12,7 +12,7 @@ export class IngressConfig {
   configs = new Map<number, IngressRouteSetConf>();
   change = debounce(500, () => this.updateIngress());
 
-  constructor(public readonly parent: Config, public readonly namespace: string, public readonly ingressName: string) {}
+  constructor(public readonly parent: Config, public readonly namespace: string, public readonly ingressName: string) { }
   create(id: number): IngressRouteSetConf {
     let old = this.configs.get(id);
     if (!old) {
@@ -51,6 +51,7 @@ export class IngressConfig {
     if (newListTxt === this.prevNode) return; // np changes
     // const INGRESS_HOST = config.INGRESS_HOST[confId];
     this.prevNode = newListTxt;
+    const routes = [] as string[];
     // console.log(
     //   "Live pods:",
     //   [...this.nodeList.values()].map((n) => `${n.podName} on Node ${n.nodeName}`),
@@ -64,7 +65,6 @@ export class IngressConfig {
     const rule = rules.find((r) => r.host == this.virtualHost) || rules[0];
     if (!rule.http) rule.http = { paths: [] };
     const http = rule.http;
-
     let paths = http.paths;
     for (const sub of this.configs.values()) {
       // drop old rules, and rewrite thems
@@ -75,12 +75,16 @@ export class IngressConfig {
       // if (!pathPrefix.startsWith("/")) pathPrefix = "/" + pathPrefix;
       for (const node of sub.nodeList.values()) {
         const nodeName = node.nodeName;
+        const path = sub.prefix.replace("NODENAME", nodeName);
+        const name = `${servicePrefix}${nodeName}`;
+        const pathType = "Prefix";
+        routes.push(`- ${pathType}:${path} to ${name}:${sub.port}`)
         paths.push({
-          path: sub.prefix.replace("NODENAME", nodeName), // `${sub.prefix}/${nodeName}`,
-          pathType: "Prefix",
+          path,
+          pathType,
           backend: {
             service: {
-              name: `${servicePrefix}${nodeName}`, // node.podName, // node.podIP | node.podName
+              name,
               port: {
                 number: Number(sub.port),
               },
@@ -96,12 +100,16 @@ export class IngressConfig {
         // drop old rules, and rewrite thems
         // const servicePrefix = `${sub.generateName}service-`;
         paths = paths.filter((elm) => elm.path !== sub.prefixBase);
+        const path = sub.prefixBase;
+        const name = this.parent.selfServiceName;
+        const pathType = "Exact";
+        routes.push(`- ${pathType}:${path} to ${name}:${this.parent.HTTP_PORT}`)
         paths.push({
-          path: sub.prefixBase,
-          pathType: "Exact",
+          path,
+          pathType,
           backend: {
             service: {
-              name: this.parent.selfServiceName, // self service
+              name,
               port: {
                 number: Number(this.parent.HTTP_PORT),
               },
@@ -124,6 +132,8 @@ export class IngressConfig {
       const { response } = await this.parent.networkingV1Api.replaceNamespacedIngress(this.ingressName, this.namespace, ingress);
       if (response.statusCode !== 200) {
         console.log(`Update ingress ${this.namespace}.${this.ingressName} update failed code: ${response.statusCode}`);
+      } else {
+        console.log(`update ingress ${this.namespace}.${this.ingressName} with routes:\n${routes.join("\n")}`)
       }
     } catch (e) {
       await logWatchError(`PUT /apis/networking.k8s.io/v1/namespaces/${this.namespace}/ingresses/${name}`, e, 0);

@@ -77,7 +77,7 @@ export class Config {
     for (const namespace of this.#namespaces) {
       try {
         await this.coreV1Api.createNamespacedService(namespace, body);
-      } catch (e) {
+      } catch (e: unknown) {
         if (e instanceof HttpError && e.statusCode === 409) {
           try {
             await this.coreV1Api.replaceNamespacedService(this.#selfServiceName, namespace, body);
@@ -117,7 +117,7 @@ export class Config {
       console.log("ingresses feature not configured");
       return;
     }
-    console.log(`Start watching ingress in ${JSON.stringify([...this.#namespaces])}`);
+    console.log(`Start watching ingress in namespaces ${JSON.stringify([...this.#namespaces].join(', '))}`);
     for (const namespace of this.#namespaces) void this.watchIngress(namespace);
   }
 
@@ -125,7 +125,7 @@ export class Config {
     const watch = new Watch(this.kubeConfig);
     const url = `/apis/networking.k8s.io/v1/namespaces/${namespace}/ingresses`;
     let errorCnt = 0;
-    for (;;) {
+    for (; ;) {
       try {
         // console.log("Watching", url);
         const watching = new Promise<void>((resolve, reject) => {
@@ -140,7 +140,7 @@ export class Config {
               if (!ingressData.ingress) console.log(`Attach to ingress "${ingressKey}"`);
               ingressData.ingress = ingress;
             },
-            (err) => {
+            (err: unknown) => {
               if (err) {
                 reject(err);
               } else resolve();
@@ -166,7 +166,7 @@ export class Config {
   }
 
   public watchPods(): void {
-    console.log(`Start watching pods in ${JSON.stringify([...this.#namespaces])}`);
+    console.log(`Start watching pods in namespaces ${[...this.#namespaces].join(', ')}`);
     for (const namespace of this.#namespaces) void this.watchPod(namespace);
   }
 
@@ -199,7 +199,7 @@ export class Config {
     const watch = new Watch(this.kubeConfig);
     const url = `/api/v1/namespaces/${namespace}/pods`;
     let errorCnt = 0;
-    for (;;) {
+    for (; ;) {
       try {
         const watching = new Promise<void>((resolve, reject) => {
           void watch.watch(
