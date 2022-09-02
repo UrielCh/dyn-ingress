@@ -31,22 +31,21 @@ class IngressUpdater {
     void this.config.watchPods();
     http
       .createServer((request, response) => {
-        console.log("incomming Request");
         const headers = { "Content-Type": "application/json" };
         if (request.method != "GET") {
           response.writeHead(404, headers);
           response.end("404 only support GET", "utf-8");
         } else {
-          const url = request.url || "";
+          const url = request.url || "/";
           const sub = this.config.getIngressConfigByPrefixBase(url);
           if (sub) {
             response.writeHead(200, headers);
-            response.end(sub.getNodeNames(), "utf-8");
+            const resp = sub.getNodeNames();
+            response.end(JSON.stringify(resp), "utf-8");
           } else if (request.url === "/") {
             response.writeHead(200, headers);
-            response.end(
-              [...this.config.prefixIndex.values()].map((sub) => sub.prefixBase),
-              "utf-8",
+            const resp = [...this.config.prefixIndex.values()].map((sub) => sub.prefixBase);
+            response.end(JSON.stringify(resp), "utf-8",
             );
           } else {
             response.writeHead(404, headers);
@@ -55,7 +54,7 @@ class IngressUpdater {
               expected: [...this.config.prefixIndex.keys()],
               url,
             };
-            response.end(resp, "utf-8");
+            response.end(JSON.stringify(resp), "utf-8");
           }
         }
       })

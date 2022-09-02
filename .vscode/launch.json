@@ -7,7 +7,7 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Generate Ingresses",
+      "name": "start Ingresses",
       "args": [
           "${workspaceFolder}/src/index.ts"
       ],
@@ -15,8 +15,8 @@
           "--nolazy",
           "-r",
           "ts-node/register",
-          "-r",
-          "tsconfig-paths/register"
+          // "-r",
+          // "tsconfig-paths/register"
       ],
       "sourceMaps": true,
       "cwd": "${workspaceRoot}",
