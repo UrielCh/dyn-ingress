@@ -1,16 +1,17 @@
 # Dyn-ingress
 
-Add Label nodename / podname / namespace label to pod.
-Maintain an Ingress to all your pods.
+Dyn-ingress can solve two Kubernetes common issue:
 
-## Tag-only feature
+- Add a label containing the node name on each pod.
+- Create and maintain an Ingress to access your pod directly.
 
-### Minimal setup
 
-You **MUST** define `APP_TAG_VALUE` to identify the pods you want to alter.
-By default, only pods having the label `app`=`APP_TAG_VALUE` will be a concern.
+## labeling only feature
 
-If you use a label key different from `app`, you can choose another label with the `APP_TAG_NAME` env variable.
+If you only need to add node name label use this image and use the following env variables:
+- `LABEL.all = 1` force the container to tag all pods
+- `LABEL_NODE_NAME = nodename` change the default label name to store the node name (default is `nodename`)
+- `NAMESPACE = default` choose the namespace you will work with
 
 Minimal configuration:
 ```YAML
@@ -23,49 +24,25 @@ spec:
   - name: dyn-ingress
     image: urielch/dyn-ingress:latest
     env:
-    - name: APP_TAG_VALUE
-      value: "app-to-tag"
+    - name: LABEL.all
+      value: "1"
+    - name: NAMESPACE
+      value: "default"
 ```
-Now all pod having label `app=app-to-tag` will receves an extra label `nodename=<nodename>`
-
-### Tagging with more tags
-
-Namespace and pod name can add two more labels to your pods. You can choose labels name with env vars: `LABEL_NODE_NAME`, `LABEL_NAMESPACE`, `LABEL_POD_NAME`:
-
-Use custom labels names:
-```YAML
-apiVersion: v1
-kind: Pod
-metadata:
-  name: dyn-ingress
-spec:
-  containers:
-  - name: dyn-ingress
-    image: urielch/dyn-ingress:latest
-    ports:
-    - containerPort: 8080
-    env:
-    - name: APP_TAG_VALUE
-      value: "app-to-tag"
-    - name: LABEL_NODE_NAME
-      value: "NODE_NAME"
-    - name: LABEL_NAMESPACE
-      value: "NAMESPACE"
-    - name: LABEL_POD_NAME
-      value: "POD_NAME"
-```
-Now all pod having label `app=app-to-tag` will receives extras labels: `NODE_NAME=<nodename>`, `LABEL_NAMESPACE=<namespace>`, `LABEL_POD_NAME=<podname>`, 
 
 ## Enable Ingress
 
 This image had been created to get direct access to all your pods via an Ingress. This is meant to be used with a DemonSet / Deployment or StateFulset.
 
-To activate the Dynamique `Ingress`, you need five more env variables:
-- `APP_TAG_NAME`: The label used to select pods. (optional default value is `app` as in Minimal setup)
-- `APP_TAG_VALUE`: Value to find in the `APP_TAG_NAME` label. (as in Minimal setup)
-- `GENERATE_NAME`: Pod name prefix ending with "-". This value is computed by Kubernetes from the DemonSet / Deployment or StateFulset name postfixed by a "-".
-- `INGRESS_NAME`: The base Ingress to add routes to.
-- `POD_PORT` pod port to expose, in service with the same port number. (default is 80)
+To activate this feature, you must define this environment variables:
+
+- `INGRESS.{NAMESPACE}.{IngresName}.host` the virtualhost to use, (MUST exist in the piloted Ingress)
+- `INGRESS.{NAMESPACE}.{IngresName}.1.name` name of the DemonSet / Deployment or StateFulset you want to access
+- `INGRESS.{NAMESPACE}.{IngresName}.1.selector` selector to match your pods like `app=MyApp`
+- `INGRESS.{NAMESPACE}.{IngresName}.1.prefix` Prefix for the new Ingress routes example: `/no-lb-service/NODENAME`, NODENAME will be replace by the actial nodename
+- `INGRESS.{NAMESPACE}.{IngresName}.1.port` Service pod port
+- `INGRESS.{NAMESPACE}.{IngresName}.1.targetPort` Service pod targetPort
+- `HTTP_PORT` Dyn-ingress pod will listen to this port for his ingress index
 
 ### Ingress K3d sample configuration
 
@@ -79,12 +56,18 @@ spec:
   - name: dyn-ingress
     image: urielch/dyn-ingress:latest
     env:
-    - name: APP_TAG_VALUE
-      value: "app-to-tag"
-    - name: GENERATE_NAME
-      value: "my-app-"
-    - name: INGRESS_NAME
-      value: "my-ingress"
+    - name: HTTP_PORT
+      value: "8080"
+    - name: INGRESS.default.my-ingress.host
+      value: ""
+    - name: INGRESS.default.my-ingress.1.name
+      value: "my-deployment"
+    - name: INGRESS.default.my-ingress.1.selector
+      value: "app=my-deployment"
+    - name: INGRESS.default.my-ingress.1.prefix
+      value: "/stuff/NODENAME"
+    - name: INGRESS.default.my-ingress.1.port
+      value: "8080"
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -106,7 +89,7 @@ spec:
                 port:
                   number: 80
 ```
-This configuration will add extra route: `http://<cluser>/nodename/url` to be redirect to `http://<podIP>:80/url`
+This configuration will add extra route: `http://<cluser>/stuff/nodename/url` to be redirect to `http://<podIP>:80/url`
 
 
 ### Full sample with RBAC
@@ -218,16 +201,19 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: APP_TAG_VALUE
-              value: "remote-droid"
-            - name: GENERATE_NAME
-              value: "remote-droid-"
-            - name: INGRESS_NAME
-              value: "remote-droid-ingress"
-            - name: POD_PORT
-              value: "3009"
             - name: HTTP_PORT
               value: "8080"
+            - name: INGRESS.default.my-ingress.host
+              value: ""
+            - name: INGRESS.default.my-ingress.1.name
+              value: "my-deployment"
+            - name: INGRESS.default.my-ingress.1.selector
+              value: "app=my-deployment"
+            - name: INGRESS.default.my-ingress.1.prefix
+              value: "/stuff/NODENAME"
+            - name: INGRESS.default.my-ingress.1.port
+              value: "8080"
+
 ---
 # Service to list nodename having valud pods
 apiVersion: v1
@@ -246,11 +232,7 @@ spec:
 
 ### TODO:
 
-- Add options ton configure URL path.
 - Publish a helm package.
 - Remove "@kubernetes/client-node" dependency
 - Add metric service.
 
-## Note:
-
-The image listens for HTTP requests to port `HTTP_PORT` (default value is 8080), and will respond with a JSON list containing all node names.
