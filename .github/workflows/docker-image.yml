@@ -30,5 +30,7 @@ jobs:
       name: Available platforms
       run: echo ${{ steps.buildx.outputs.platforms }}
     - name: Build the Docker image
-      run: docker buildx build --platform linux/amd64,linux/arm64 -t urielch/dyn-ingress:latest --push .
-#     run: docker build . --file Dockerfile --tag my-image-name:$(date +%s) 
+      run: docker buildx build --platform linux/amd64,linux/arm64 \
+           -t urielch/dyn-ingress:latest \
+           -t urielch/dyn-ingress:$(date +%Y-%m-%d_%H%M%S) \
+           --push .

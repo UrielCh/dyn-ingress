@@ -63,6 +63,5 @@ class IngressUpdater {
       });
   }
 }
-console.log("Stating V2");
 const updater = new IngressUpdater();
 void updater.start();
