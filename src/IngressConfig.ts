@@ -101,23 +101,25 @@ export class IngressConfig {
       for (const sub of this.configs.values()) {
         // drop old rules, and rewrite thems
         // const servicePrefix = `${sub.generateName}service-`;
-        paths = paths.filter((elm) => elm.path !== sub.prefixBase);
-        const path = sub.prefixBase;
-        const name = this.parent.selfServiceName;
-        const pathType = "Exact";
-        routes.push(`- ${pathType}:${path} to ${name}:${this.parent.HTTP_PORT}`)
-        paths.push({
-          path,
-          pathType,
-          backend: {
-            service: {
-              name,
-              port: {
-                number: Number(this.parent.HTTP_PORT),
+        for (const prefixBase of [sub.prefixBase, sub.prefixBase.replace(/\/$/, "")]) {
+          paths = paths.filter((elm) => elm.path !== prefixBase);
+          const path = prefixBase;
+          const name = this.parent.selfServiceName;
+          const pathType = "Exact";
+          routes.push(`- ${pathType}:${path} to ${name}:${this.parent.HTTP_PORT}`)
+          paths.push({
+            path,
+            pathType,
+            backend: {
+              service: {
+                name,
+                port: {
+                  number: Number(this.parent.HTTP_PORT),
+                },
               },
             },
-          },
-        });
+          });
+        }
       }
 
     // overwrite paths TODO compare paths for changes
