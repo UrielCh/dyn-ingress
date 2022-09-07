@@ -5,7 +5,6 @@ Dyn-ingress can solve two Kubernetes common issue:
 - Add a label containing the node name on each pod.
 - Create and maintain an Ingress to access your pod directly.
 
-
 ## labeling only feature
 
 If you only need to add node name label use this image and use the following env variables:
@@ -43,6 +42,8 @@ To activate this feature, you must define this environment variables:
 - `INGRESS.{NAMESPACE}.{IngresName}.1.port` Service pod port
 - `INGRESS.{NAMESPACE}.{IngresName}.1.targetPort` Service pod targetPort
 - `HTTP_PORT` Dyn-ingress pod will listen to this port for his ingress index
+
+To fin the current available routes, dyn-ingress will create two extra entry point route per configuration, the vrevious configuration will add `/no-lb-service/` and `/no-lb-service` that will return a json list of available nodes.
 
 ### Ingress K3d sample configuration
 

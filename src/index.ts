@@ -2,8 +2,11 @@ import { KubeConfig } from "@kubernetes/client-node";
 import { homedir } from "os";
 import { join } from "path";
 import { existsSync } from "fs";
-import http from "http";
+import http, { IncomingMessage, ServerResponse } from "http";
 import { Config } from "./config";
+
+const HEADERS_JSON = { "Content-Type": "application/json" };
+const HEADERS_HTML = { "Content-Type": "text/html; charset=utf-8" };
 
 class IngressUpdater {
   kubeconfig: KubeConfig;
@@ -29,26 +32,37 @@ class IngressUpdater {
     }
     void this.config.watchIngresses();
     void this.config.watchPods();
+
+    const sendList = (request: IncomingMessage, response: ServerResponse, list: string[]) => {
+      const url = request.url || "/";
+      const reqHeaders = request.headers || {};
+      const accept = reqHeaders.accept || '';
+      // accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+      const useHTML = accept.startsWith("text/html");
+      if (useHTML) {
+        response.writeHead(200, HEADERS_HTML);
+        const prefix = url.endsWith("/") ? '.' : url.replace(/$.*\//, "");
+        response.end(`<html><body><ul>${list.map(a=>`<li><a href="${prefix}/${a}/">${a}</li>`)}</ul></body></html>`, "utf-8");
+      } else {
+        response.writeHead(200, HEADERS_JSON);
+        response.end(JSON.stringify(list), "utf-8");
+      }
+    }
+
     http
       .createServer((request, response) => {
-        const headers = { "Content-Type": "application/json" };
         if (request.method != "GET") {
-          response.writeHead(404, headers);
+          response.writeHead(404, HEADERS_JSON);
           response.end("404 only support GET", "utf-8");
         } else {
           const url = request.url || "/";
           const sub = this.config.getIngressConfigByPrefixBase(url);
           if (sub) {
-            response.writeHead(200, headers);
-            const resp = sub.getNodeNames();
-            response.end(JSON.stringify(resp), "utf-8");
+            sendList(request, response, sub.getNodeNames());
           } else if (request.url === "/") {
-            response.writeHead(200, headers);
-            const resp = [...this.config.prefixIndex.values()].map((sub) => sub.prefixBase);
-            response.end(JSON.stringify(resp), "utf-8",
-            );
+            sendList(request, response, [...this.config.prefixIndex.values()].map((sub) => sub.prefixBase));
           } else {
-            response.writeHead(404, headers);
+            response.writeHead(404, HEADERS_JSON);
             const resp = {
               msg: "unknown url",
               expected: [...this.config.prefixIndex.keys()],

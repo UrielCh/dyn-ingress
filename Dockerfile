@@ -1,4 +1,4 @@
-FROM node:18-alpine As build
+FROM --platform=$BUILDPLATFORM node:18-alpine As build
 
 WORKDIR /usr/src/app
 COPY webpack.config.ts package.json tsconfig.json ./

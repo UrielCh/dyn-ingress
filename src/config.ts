@@ -238,12 +238,17 @@ export class Config {
 
   #prefixIndex?: Map<string, IngressRouteSetConf>;
 
+  /**
+   * build prefix map index
+   */
   get prefixIndex(): Map<string, IngressRouteSetConf> {
     if (!this.#prefixIndex) {
       const map = new Map<string, IngressRouteSetConf>();
       for (const conf of this.ingresses.values()) {
         for (const sub of conf.configs.values()) {
           map.set(sub.prefixBase, sub);
+          // index the prefix without the tailing /
+          map.set(sub.prefixBase.replace(/\/$/, ""), sub);
         }
       }
       this.#prefixIndex = map;
