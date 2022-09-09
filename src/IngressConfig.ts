@@ -29,12 +29,13 @@ export class IngressConfig {
     }
   }
 
-  public visitPod(pod: V1Pod, removed?: boolean): IngressRouteSetConf | null {
+  public visitPod(pod: V1Pod, removed?: boolean): IngressRouteSetConf[] {
+    const routes: IngressRouteSetConf[] = [];
     for (const child of this.configs.values()) {
       const m = child.visitPod(pod, removed);
-      if (m) return m;
+      if (m) routes.push(m);
     }
-    return null;
+    return routes;
   }
 
   lastupdateIngressMessage = "";

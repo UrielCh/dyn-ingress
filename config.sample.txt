@@ -17,3 +17,8 @@ INGRESS.default.remote-droid-ingress.2.prefix=/pilot/NODENAME
 INGRESS.default.remote-droid-ingress.2.port=3010
 INGRESS.default.remote-droid-ingress.2.targetPort=3010
 
+INGRESS.default.remote-droid-ingress.3.name=pilot-droid
+INGRESS.default.remote-droid-ingress.3.selector=app=pilot-droid
+INGRESS.default.remote-droid-ingress.3.prefix=/debug/NODENAME
+INGRESS.default.remote-droid-ingress.3.port=9229
+INGRESS.default.remote-droid-ingress.3.targetPort=9229

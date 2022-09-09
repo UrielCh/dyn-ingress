@@ -157,12 +157,13 @@ export class Config {
 
   /////////////
   // Pod section
-  public visitPod(pod: V1Pod, removed?: boolean): IngressRouteSetConf | null {
+  public visitPod(pod: V1Pod, removed?: boolean): IngressRouteSetConf[] {
+    const routes: IngressRouteSetConf[] = [];
     for (const child of this.ingresses.values()) {
       const m = child.visitPod(pod, removed);
-      if (m) return m;
+      if (m.length) routes.push(...m);
     }
-    return null;
+    return routes;
   }
 
   public watchPods(): void {
@@ -174,14 +175,14 @@ export class Config {
    * Tag pod with extra labels
    * @param pod the pod
    */
-  async ensurePodLabel(pod: V1Pod): Promise<IngressRouteSetConf | null> {
+  async ensurePodLabel(pod: V1Pod): Promise<IngressRouteSetConf[] | null> {
     const { metadata, spec } = pod;
     if (!spec || !metadata) return null;
     if (!metadata.labels) metadata.labels = {};
-    const conf = this.visitPod(pod);
-    if (!conf || !this.LABEL_ALL) return null;
+    const confs = this.visitPod(pod);
+    if (!confs.length || !this.LABEL_ALL) return null;
     if (!metadata || !metadata.name || !metadata.namespace) return null;
-    if (metadata.labels[this.LABEL_NODE_NAME] === spec.nodeName) return conf;
+    if (metadata.labels[this.LABEL_NODE_NAME] === spec.nodeName) return confs;
     const body = [];
     body.push({ op: "add", path: `/metadata/labels/${this.LABEL_NODE_NAME}`, value: spec.nodeName });
     //if (config.LABEL_NAMESPACE && pod.metadata.namespace)
@@ -191,7 +192,7 @@ export class Config {
     const options = { headers: { "Content-type": PatchUtils.PATCH_FORMAT_JSON_PATCH } };
     console.log(`Patching pod ${metadata.namespace}.${metadata.name} with label:${this.LABEL_NODE_NAME}=${spec.nodeName}`);
     await this.coreV1Api.patchNamespacedPod(metadata.name, metadata.namespace, body, undefined, undefined, undefined, undefined, undefined, options);
-    return conf;
+    return confs;
   }
 
   private async watchPod(namespace: string): Promise<never> {
@@ -208,6 +209,7 @@ export class Config {
               if (phase === "DELETED") {
                 this.visitPod(pod, true);
               } else {
+                // ensurePodLabel will call visitPod
                 this.ensurePodLabel(pod);
               }
             },
