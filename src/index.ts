@@ -42,7 +42,7 @@ class IngressUpdater {
       if (useHTML) {
         response.writeHead(200, HEADERS_HTML);
         const prefix = url.endsWith("/") ? '.' : url.replace(/$.*\//, "");
-        response.end(`<html><body><ul>${list.map(a=>`<li><a href="${prefix}/${a}/">${a}</li>`)}</ul></body></html>`, "utf-8");
+        response.end(`<html><body><ul>${list.map(a=>`<li><a href="${prefix}/${a}/">${a}</li>`).join('')}</ul></body></html>`, "utf-8");
       } else {
         response.writeHead(200, HEADERS_JSON);
         response.end(JSON.stringify(list), "utf-8");
