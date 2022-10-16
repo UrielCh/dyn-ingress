@@ -234,6 +234,6 @@ spec:
 ### TODO:
 
 - Publish a helm package.
-- Remove "@kubernetes/client-node" dependency
+- Remove "@kubernetes/client-node" dependency or fork this shit.
 - Add metric service.
 

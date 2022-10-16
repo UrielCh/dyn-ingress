@@ -242,6 +242,7 @@ export class Config {
 
   /**
    * build prefix map index
+   * each Route is present 2 times, with and without the tailing /
    */
   get prefixIndex(): Map<string, IngressRouteSetConf> {
     if (!this.#prefixIndex) {

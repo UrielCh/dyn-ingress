@@ -33,7 +33,11 @@ class IngressUpdater {
     void this.config.watchIngresses();
     void this.config.watchPods();
 
+    /**
+     * send list of sub items as json or as HTML if request is done by a webbrowser
+     **/
     const sendList = (request: IncomingMessage, response: ServerResponse, list: string[]) => {
+      list = [...new Set(list)];
       const url = request.url || "/";
       const reqHeaders = request.headers || {};
       const accept = reqHeaders.accept || '';
@@ -41,8 +45,8 @@ class IngressUpdater {
       const useHTML = accept.startsWith("text/html");
       if (useHTML) {
         response.writeHead(200, HEADERS_HTML);
-        const prefix = url.endsWith("/") ? '.' : url.replace(/$.*\//, "");
-        response.end(`<html><body><ul>${list.map(a=>`<li><a href="${prefix}/${a}/">${a}</li>`).join('')}</ul></body></html>`, "utf-8");
+        const prefix = url.endsWith("/") ? './' : url.replace(/$.*\//, "");
+        response.end(`<html><body>\r\n  <ul>\r\n${list.map(a=>`    <li><a href="${prefix}${a}">${a}</li>\r\n`).join('')}  </ul>\r\n</body>\r\n</html>`, "utf-8");
       } else {
         response.writeHead(200, HEADERS_JSON);
         response.end(JSON.stringify(list), "utf-8");
