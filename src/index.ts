@@ -2,11 +2,8 @@ import { KubeConfig } from "@kubernetes/client-node";
 import { homedir } from "os";
 import { join } from "path";
 import { existsSync } from "fs";
-import http, { IncomingMessage, ServerResponse } from "http";
 import { Config } from "./config";
-
-const HEADERS_JSON = { "Content-Type": "application/json" };
-const HEADERS_HTML = { "Content-Type": "text/html; charset=utf-8" };
+import { WebServer } from "./WebServer";
 
 class IngressUpdater {
   kubeconfig: KubeConfig;
@@ -32,53 +29,8 @@ class IngressUpdater {
     }
     void this.config.watchIngresses();
     void this.config.watchPods();
-
-    /**
-     * send list of sub items as json or as HTML if request is done by a webbrowser
-     **/
-    const sendList = (request: IncomingMessage, response: ServerResponse, list: string[]) => {
-      list = [...new Set(list)];
-      const url = request.url || "/";
-      const reqHeaders = request.headers || {};
-      const accept = reqHeaders.accept || '';
-      // accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
-      const useHTML = accept.startsWith("text/html");
-      if (useHTML) {
-        response.writeHead(200, HEADERS_HTML);
-        const prefix = url.endsWith("/") ? './' : url.replace(/$.*\//, "");
-        response.end(`<html><body>\r\n  <ul>\r\n${list.map(a=>`    <li><a href="${prefix}${a}">${a}</li>\r\n`).join('')}  </ul>\r\n</body>\r\n</html>`, "utf-8");
-      } else {
-        response.writeHead(200, HEADERS_JSON);
-        response.end(JSON.stringify(list), "utf-8");
-      }
-    }
-
-    http
-      .createServer((request, response) => {
-        if (request.method != "GET") {
-          response.writeHead(404, HEADERS_JSON);
-          response.end("404 only support GET", "utf-8");
-        } else {
-          const url = request.url || "/";
-          const sub = this.config.getIngressConfigByPrefixBase(url);
-          if (sub) {
-            sendList(request, response, sub.getNodeNames());
-          } else if (request.url === "/") {
-            sendList(request, response, [...this.config.prefixIndex.values()].map((sub) => sub.prefixBase));
-          } else {
-            response.writeHead(404, HEADERS_JSON);
-            const resp = {
-              msg: "unknown url",
-              expected: [...this.config.prefixIndex.keys()],
-              url,
-            };
-            response.end(JSON.stringify(resp), "utf-8");
-          }
-        }
-      })
-      .listen(this.config.HTTP_PORT, () => {
-        console.log(`Listening to port: ${this.config.HTTP_PORT} for service "${this.config.selfServiceName}"`)
-      });
+    const webserver = new WebServer(this.config);
+    webserver.start();
   }
 }
 const updater = new IngressUpdater();
