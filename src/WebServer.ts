@@ -32,7 +32,7 @@ export class WebServer {
         // keep the current folder
         prefix = url.replace(/$.*\//, "./") + '/';
       }
-      console.log({url, prefix});
+      // console.log({url, prefix});
       response.end(`<html><body>\r\n  <ul>\r\n${list.map(a => `    <li><a href="${prefix}${a}">${a}</li>\r\n`).join('')}  </ul>\r\n</body>\r\n</html>`, "utf-8");
     } else {
       response.writeHead(200, HEADERS_JSON);
