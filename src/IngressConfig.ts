@@ -146,7 +146,7 @@ export class IngressConfig {
         }
       }
     } catch (e) {
-      await logWatchError(`PUT /apis/networking.k8s.io/v1/namespaces/${this.namespace}/ingresses/${this.ingressName}`, e, 0);
+      await logWatchError(`PUT ${this.parent.coreV1Api.basePath}/apis/networking.k8s.io/v1/namespaces/${this.namespace}/ingresses/${this.ingressName}`, e, 0);
     }
   }
 }

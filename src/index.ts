@@ -10,7 +10,8 @@ class IngressUpdater {
   config: Config;
 
   constructor() {
-    const kubeconf = join(homedir(), ".kube", "config");
+    const KUBCONFIG_NAME = process.env["KUBCONFIG_NAME"] || "config";
+    const kubeconf = join(homedir(), ".kube", KUBCONFIG_NAME);
 
     this.kubeconfig = new KubeConfig();
     if (existsSync(kubeconf)) this.kubeconfig.loadFromFile(kubeconf);

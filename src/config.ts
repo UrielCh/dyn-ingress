@@ -77,15 +77,16 @@ export class Config {
     for (const namespace of this.#namespaces) {
       try {
         await this.coreV1Api.createNamespacedService(namespace, body);
+        console.log(`POST ${this.coreV1Api.basePath}/api/v1/namespaces/${namespace}/services ${this.#selfServiceName} Done`);
       } catch (e: unknown) {
         if (e instanceof HttpError && e.statusCode === 409) {
           try {
             await this.coreV1Api.replaceNamespacedService(this.#selfServiceName, namespace, body);
           } catch (e2) {
-            await logWatchError(`POST /api/v1/namespaces/${namespace}/services`, e2, 0);
+            await logWatchError(`POST ${this.coreV1Api.basePath}/api/v1/namespaces/${namespace}/services`, e2, 0);
           }
         } else {
-          await logWatchError(`PUT /api/v1/namespaces/${namespace}/services`, e, 0);
+          await logWatchError(`PUT ${this.coreV1Api.basePath}/api/v1/namespaces/${namespace}/services`, e, 0);
         }
         // console.error(`failed to create Namespaced Service ${namespace}.${this.#selfServiceName} errorCode:${e.}`);
       }
@@ -198,6 +199,7 @@ export class Config {
   private async watchPod(namespace: string): Promise<never> {
     const watch = new Watch(this.kubeConfig);
     const url = `/api/v1/namespaces/${namespace}/pods`;
+    const fullUrl = `${this.coreV1Api.basePath}${url}`;
     let errorCnt = 0;
     for (; ;) {
       try {
@@ -223,7 +225,7 @@ export class Config {
         await watching;
         errorCnt = 0;
       } catch (e) {
-        await logWatchError(url, e, ++errorCnt);
+        await logWatchError(fullUrl, e, ++errorCnt);
       }
     }
   }

@@ -23,6 +23,7 @@
       "console": "integratedTerminal",
       "env": {
         "LABEL.all" : "1",
+        "KUBCONFIG_NAME": "oracle",
         "LABEL.nodename": "nodename",
         "HTTP_PORT": "8080",
         "SELF_SELECTOR": "app=dyn-ingress",
