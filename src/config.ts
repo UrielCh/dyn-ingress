@@ -211,7 +211,7 @@ export class Config {
     //if (config.LABEL_POD_NAME && pod.metadata.name)
     //  body.push({ op: "add", path: `/metadata/labels/${config.LABEL_POD_NAME}`, value: pod.metadata.name });
     const options = { headers: { "Content-type": PatchUtils.PATCH_FORMAT_JSON_PATCH } };
-    console.log(`Patching pod ${formatResource(metadata.namespace, metadata.name)}} with label:${this.LABEL_NODE_NAME}=${spec.nodeName}`);
+    console.log(`Patching pod ${formatResource(metadata.namespace, metadata.name)} with label:${this.LABEL_NODE_NAME}=${spec.nodeName}`);
     await this.coreV1Api.patchNamespacedPod(metadata.name, metadata.namespace, body, undefined, undefined, undefined, undefined, undefined, options);
     return confs;
   }

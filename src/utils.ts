@@ -1,7 +1,13 @@
 import { HttpError } from "@kubernetes/client-node";
 import pc from "picocolors";
 
-const NO_COLOR=process.env.NO_COLOR;
+const NO_COLOR = process.env.NO_COLOR;
+
+if (!NO_COLOR) {
+  console.log(pc.bgMagenta('Color output is enabled, define NO_COLOR to remove colors in ouput.'));
+} else {
+  console.log('Colors output is disabled.');
+}
 
 export const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
