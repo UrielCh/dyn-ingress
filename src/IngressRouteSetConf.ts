@@ -1,5 +1,6 @@
 import { CoreV1Api, V1Pod, V1Service, HttpError } from "@kubernetes/client-node";
 import { IngressConfig } from "./IngressConfig";
+import { formatName } from "./utils";
 
 interface PodData {
   //  podName: string;
@@ -87,7 +88,7 @@ export class IngressRouteSetConf {
     if (metadata.generateName !== this.generateName) {
       const diffKey = `${metadata.generateName}=${this.generateName}`;
       if (!this.seenPrefix.has(diffKey)) {
-        console.log(`pod ${metadata.name} with prefix ${metadata.generateName} do not match ${this.generateName}, Skip, Should be Ok.`)
+        console.log(`pod ${formatName(metadata.name)} with prefix ${formatName(metadata.generateName || '')} do not match ${formatName(this.generateName)}, Skip, Should be Ok.`)
         this.seenPrefix.add(diffKey);
       }
       return null;

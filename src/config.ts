@@ -1,7 +1,7 @@
 import { KubeConfig, NetworkingV1Api, CoreV1Api, Watch, V1Pod, V1Ingress, PatchUtils, V1Service, HttpError } from "@kubernetes/client-node";
 import { IngressRouteSetConf } from "./IngressRouteSetConf";
 import { IngressConfig } from "./IngressConfig";
-import { logWatchError } from "./utils";
+import { formatName, formatNameSpace, formatResource, logWatchError } from "./utils";
 
 export class Config {
   public readonly LABEL_NODE_NAME: string;
@@ -40,7 +40,7 @@ export class Config {
       if (!m) continue;
       const [, namespace, ingressName, idStr, k] = m;
       const ingressKey = `${namespace}.${ingressName}`;
-      this.addNamespaces(namespace, `discover key: "${key}"`);
+      this.addNamespaces(namespace, `discover key: "${formatName(key)}"`);
       let slot = this.ingresses.get(ingressKey);
       if (!slot) {
         slot = new IngressConfig(this, namespace, ingressName);
@@ -97,7 +97,7 @@ export class Config {
 
   private addNamespaces(namespace: string, reason: string) {
     if (!this.#namespaces.has(namespace)) {
-      console.log(`Watching namespace "${namespace}" cause by ${reason}`);
+      console.log(`Watching namespace ${formatNameSpace(namespace)} cause by ${reason}`);
       this.#namespaces.add(namespace);
     }
   }
@@ -107,8 +107,9 @@ export class Config {
    */
   public validate(): void {
     for (const [id, ing] of this.ingresses.entries()) {
-      ing.validate(`INGRESS.${id}`);
-      console.log(`"INGRESS.${id}" ingress config is valid`);
+      const key = `INGRESS.${id}`;
+      ing.validate(key);
+      console.log(`"${formatName(key)}" ingress config is valid`);
     }
   }
 
@@ -121,7 +122,7 @@ export class Config {
       return;
     }
     // console.log(`Start watching ingress in namespaces ${JSON.stringify([...this.#namespaces].join(', '))}`);
-    console.log(`Start watching ingress in namespaces ${JSON.stringify([...this.#namespaces])}`);
+    console.log(`Start watching ingress in namespaces ${[...this.#namespaces].map(formatNameSpace)}`);
     for (const namespace of this.#namespaces) void this.watchIngress(namespace);
   }
 
@@ -137,17 +138,17 @@ export class Config {
             url,
             {},
             (phase: string | "ADDED" | "MODIFIED" | "DELETED", ingress: V1Ingress) => {
-              const ingressName = ingress.metadata?.name;
+              const ingressName = ingress.metadata?.name || '';
               const ingressKey = `${namespace}.${ingressName}`;
               const ingressData = this.ingresses.get(ingressKey);
               if (!ingressData) {
                 if (!this.seenIngress.has(ingressKey)) {
-                  console.log(`No matching rule for ingress "${ingressKey}", Skip, should be ok`);
+                  console.log(`No matching rule for ingress "${formatResource(namespace, ingressName)}", Skip, should be ok`);
                   this.seenIngress.add(ingressKey);
                 }
                 return;
               }
-              if (!ingressData.ingress) console.log(`Attach to ingress "${ingressKey}"`);
+              if (!ingressData.ingress) console.log(`Attach to ingress "${formatResource(namespace, ingressName)}"`);
               ingressData.ingress = ingress;
             },
             (err: unknown) => {
@@ -178,7 +179,7 @@ export class Config {
 
   public watchPods(): void {
     // console.log(`Start watching pods in namespaces ${[...this.#namespaces].join(', ')}`);
-    console.log(`Start watching pods in namespaces ${JSON.stringify([...this.#namespaces])}`);
+    console.log(`Start watching pods in namespaces ${[...this.#namespaces].map(formatNameSpace)}`);
     for (const namespace of this.#namespaces) void this.watchPod(namespace);
   }
 
@@ -210,7 +211,7 @@ export class Config {
     //if (config.LABEL_POD_NAME && pod.metadata.name)
     //  body.push({ op: "add", path: `/metadata/labels/${config.LABEL_POD_NAME}`, value: pod.metadata.name });
     const options = { headers: { "Content-type": PatchUtils.PATCH_FORMAT_JSON_PATCH } };
-    console.log(`Patching pod ${metadata.namespace}.${metadata.name} with label:${this.LABEL_NODE_NAME}=${spec.nodeName}`);
+    console.log(`Patching pod ${formatResource(metadata.namespace, metadata.name)}} with label:${this.LABEL_NODE_NAME}=${spec.nodeName}`);
     await this.coreV1Api.patchNamespacedPod(metadata.name, metadata.namespace, body, undefined, undefined, undefined, undefined, undefined, options);
     return confs;
   }

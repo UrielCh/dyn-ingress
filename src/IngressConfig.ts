@@ -2,7 +2,7 @@ import { V1Pod, V1Ingress } from "@kubernetes/client-node";
 import { debounce } from "throttle-debounce";
 import { IngressRouteSetConf } from "./IngressRouteSetConf";
 import { Config } from "./config";
-import { logWatchError } from "./utils";
+import { formatName, formatNumber, formatPrefix, formatResource, logWatchError } from "./utils";
 
 export class IngressConfig {
   public ingress: V1Ingress | null = null;
@@ -24,8 +24,9 @@ export class IngressConfig {
 
   public validate(parent: string): void {
     for (const [id, ing] of this.configs.entries()) {
-      ing.validate(`${parent}.${id}`);
-      console.log(`"${parent}.${id}" routeSet is valid`);
+      const key = `${parent}.${id}`;
+      ing.validate(key);
+      console.log(`"${formatName(key)}" routeSet is valid`);
     }
   }
 
@@ -81,7 +82,7 @@ export class IngressConfig {
         const path = sub.prefix.replace("NODENAME", nodeName);
         const name = `${servicePrefix}${nodeName}`;
         const pathType = "Prefix";
-        routes.push(`- ${pathType}:${path} to ${name}:${sub.port}`)
+        routes.push(`- ${pathType}:${formatPrefix(path)} to service ${formatName(name)}:${formatNumber(sub.port)}`)
         paths.push({
           path,
           pathType,
@@ -111,7 +112,7 @@ export class IngressConfig {
           const path = prefixBase;
           const name = this.parent.selfServiceName;
           const pathType = "Exact";
-          routes.push(`- ${pathType}:${path} to ${name}:${this.parent.HTTP_PORT}`)
+          routes.push(`- ${pathType}:${formatPrefix(path)} to service ${formatName(name)}:${formatNumber(this.parent.HTTP_PORT)}`)
           paths.push({
             path,
             pathType,
@@ -140,12 +141,12 @@ export class IngressConfig {
     try {
       const { response } = await this.parent.networkingV1Api.replaceNamespacedIngress(this.ingressName, this.namespace, ingress);
       if (response.statusCode !== 200) {
-        console.log(`Update ingress ${this.namespace}.${this.ingressName} update failed code: ${response.statusCode}`);
+        console.log(`Update ingress ${formatResource(this.namespace, this.ingressName)} update failed code: ${response.statusCode}`);
       } else {
-        const msg = `Update ingress ${this.namespace}.${this.ingressName} with ${routes.length} routes:\n${routes.join("\n")}`;
+        const msg = `Update ingress ${formatResource(this.namespace, this.ingressName)} with ${formatNumber(routes.length)} routes:\n${routes.join("\n")}`;
         if (msg !== this.lastupdateIngressMessage) {
           // TODO compare with previous ingress bf update
-          console.log(`Updating ingress: ${this.namespace}.${this.ingressName}:`)
+          console.log(`Updating ingress: ${formatResource(this.namespace, this.ingressName)}:`)
           console.log(msg)
           console.log()
           this.lastupdateIngressMessage = msg

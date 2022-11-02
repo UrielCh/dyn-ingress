@@ -4,6 +4,7 @@ specifiers:
   '@kubernetes/client-node': ^0.17.0
   '@types/node': ^18.11.0
   '@types/throttle-debounce': ^5.0.0
+  picocolors: ^1.0.0
   throttle-debounce: ^5.0.0
   ts-loader: ^9.4.1
   ts-node: ^10.9.1
@@ -13,6 +14,7 @@ specifiers:
 
 dependencies:
   '@kubernetes/client-node': 0.17.0
+  picocolors: 1.0.0
   throttle-debounce: 5.0.0
 
 devDependencies:
@@ -1100,7 +1102,6 @@ packages:
 
   /picocolors/1.0.0:
     resolution: {integrity: sha512-1fygroTLlHu66zi26VoTDv8yRgm0Fccecssto+MhsZ0D/DGW2sm8E8AjW7NU5VVTRt5GxbeZ5qBuJr+HyLYkjQ==}
-    dev: true
 
   /picomatch/2.3.1:
     resolution: {integrity: sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==}
