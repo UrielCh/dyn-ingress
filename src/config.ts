@@ -7,6 +7,8 @@ export class Config {
   public readonly LABEL_NODE_NAME: string;
   public readonly SELF_SELECTOR: string;
   public readonly networkingV1Api: NetworkingV1Api;
+  private seenIngress = new Set<string>();
+
   #selfServiceName = "";
   /**
    * if set will add label on all pods in the selected namespace
@@ -118,7 +120,8 @@ export class Config {
       console.log("ingresses feature not configured");
       return;
     }
-    console.log(`Start watching ingress in namespaces ${JSON.stringify([...this.#namespaces].join(', '))}`);
+    // console.log(`Start watching ingress in namespaces ${JSON.stringify([...this.#namespaces].join(', '))}`);
+    console.log(`Start watching ingress in namespaces ${JSON.stringify([...this.#namespaces])}`);
     for (const namespace of this.#namespaces) void this.watchIngress(namespace);
   }
 
@@ -137,7 +140,13 @@ export class Config {
               const ingressName = ingress.metadata?.name;
               const ingressKey = `${namespace}.${ingressName}`;
               const ingressData = this.ingresses.get(ingressKey);
-              if (!ingressData) return;
+              if (!ingressData) {
+                if (!this.seenIngress.has(ingressKey)) {
+                  console.log(`No matching rule for ingress "${ingressKey}", Skip, should be ok`);
+                  this.seenIngress.add(ingressKey);
+                }
+                return;
+              }
               if (!ingressData.ingress) console.log(`Attach to ingress "${ingressKey}"`);
               ingressData.ingress = ingress;
             },
@@ -168,7 +177,8 @@ export class Config {
   }
 
   public watchPods(): void {
-    console.log(`Start watching pods in namespaces ${[...this.#namespaces].join(', ')}`);
+    // console.log(`Start watching pods in namespaces ${[...this.#namespaces].join(', ')}`);
+    console.log(`Start watching pods in namespaces ${JSON.stringify([...this.#namespaces])}`);
     for (const namespace of this.#namespaces) void this.watchPod(namespace);
   }
 
@@ -176,14 +186,23 @@ export class Config {
    * Tag pod with extra labels
    * @param pod the pod
    */
-  async ensurePodLabel(pod: V1Pod): Promise<IngressRouteSetConf[] | null> {
+  async ensurePodLabel(pod: V1Pod): Promise<IngressRouteSetConf[]> {
     const { metadata, spec } = pod;
-    if (!spec || !metadata) return null;
+    if (!spec || !metadata) return [];
     if (!metadata.labels) metadata.labels = {};
     const confs = this.visitPod(pod);
-    if (!confs.length || !this.LABEL_ALL) return null;
-    if (!metadata || !metadata.name || !metadata.namespace) return null;
-    if (metadata.labels[this.LABEL_NODE_NAME] === spec.nodeName) return confs;
+    if (!confs.length && !this.LABEL_ALL) {
+      return [];
+    }
+    if (!metadata || !metadata.name || !metadata.namespace) {
+      console.error('visit a pod with no name or no namespace, ODD');
+      // no name or namespace shoul;d not append
+      return []
+    };
+    if (metadata.labels[this.LABEL_NODE_NAME] === spec.nodeName) {
+      // all ready patched
+      return confs;
+    }
     const body = [];
     body.push({ op: "add", path: `/metadata/labels/${this.LABEL_NODE_NAME}`, value: spec.nodeName });
     //if (config.LABEL_NAMESPACE && pod.metadata.namespace)

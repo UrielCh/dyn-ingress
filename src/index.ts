@@ -4,6 +4,7 @@ import { join } from "path";
 import { existsSync } from "fs";
 import { Config } from "./config";
 import { WebServer } from "./WebServer";
+import { IngressConfig } from "./IngressConfig";
 
 class IngressUpdater {
   kubeconfig: KubeConfig;
@@ -28,6 +29,25 @@ class IngressUpdater {
         console.log(e.stack);
       }
     }
+    const keys = [...this.config.ingresses.keys()];
+    console.log(`Starting DynIngress with ${keys.length} Services`)
+    for (const key of keys) {
+      console.log(`Service: ${key}`)
+      const config = this.config.ingresses.get(key) as IngressConfig;
+      console.log(`  ingressName: ${config.ingressName}`);
+      if (config.configs.size > 1)
+        console.log(`  contains ${config.configs.size} routes`);
+      for (const sub of config.configs.values()) {
+        console.log(`    route ${sub.name} matching pod having label ${sub.selectorKey}=${sub.selectorValue}`);
+        console.log(`    exposing route in ${sub.prefix}`);
+      }
+      //console.log(`ingressName: ${config.configs.size}`);
+
+    }
+    // log tasks
+    // console.log(this.config.ingresses);
+    // this.config.ingresses.
+
     void this.config.watchIngresses();
     void this.config.watchPods();
     const webserver = new WebServer(this.config);

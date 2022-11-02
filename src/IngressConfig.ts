@@ -102,7 +102,11 @@ export class IngressConfig {
       for (const sub of this.configs.values()) {
         // drop old rules, and rewrite thems
         // const servicePrefix = `${sub.generateName}service-`;
-        for (const prefixBase of [sub.prefixBase, sub.prefixBase.replace(/\/$/, "")]) {
+        const prefixBases = [sub.prefixBase];
+        if (sub.prefixBase.length > 1) { // never add an empty route.
+          prefixBases.push(sub.prefixBase.replace(/\/$/, ""));
+        }
+        for (const prefixBase of prefixBases) {
           paths = paths.filter((elm) => elm.path !== prefixBase);
           const path = prefixBase;
           const name = this.parent.selfServiceName;
@@ -141,7 +145,9 @@ export class IngressConfig {
         const msg = `Update ingress ${this.namespace}.${this.ingressName} with ${routes.length} routes:\n${routes.join("\n")}`;
         if (msg !== this.lastupdateIngressMessage) {
           // TODO compare with previous ingress bf update
+          console.log(`Updating ingress: ${this.namespace}.${this.ingressName}:`)
           console.log(msg)
+          console.log()
           this.lastupdateIngressMessage = msg
         }
       }

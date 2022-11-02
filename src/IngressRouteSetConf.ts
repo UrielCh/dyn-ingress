@@ -30,6 +30,7 @@ export class IngressRouteSetConf {
   public port = 0;
   public targetPort = 0;
   public generateName = "-";
+  private seenPrefix = new Set<string>();
 
   constructor(private parent: IngressConfig) { }
 
@@ -83,7 +84,14 @@ export class IngressRouteSetConf {
     const { metadata, spec } = pod;
     if (!metadata || !spec) return null;
     if (!metadata.name) return null;
-    if (metadata.generateName !== this.generateName) return null;
+    if (metadata.generateName !== this.generateName) {
+      const diffKey = `${metadata.generateName}=${this.generateName}`;
+      if (!this.seenPrefix.has(diffKey)) {
+        console.log(`pod ${metadata.name} with prefix ${metadata.generateName} do not match ${this.generateName}, Skip, Should be Ok.`)
+        this.seenPrefix.add(diffKey);
+      }
+      return null;
+    }
     if (removed) {
       this.nodeList.delete(metadata.name);
       this.delPodService(pod);
