@@ -22,6 +22,11 @@ function isPodValid(pod: V1Pod): boolean {
 
 type Podname = string;
 
+export interface VisitePodSummery {
+  conf?: IngressRouteSetConf,
+  expect?: string
+}
+
 export class IngressRouteSetConf {
   public name = "";
   public selectorKey = "";
@@ -81,17 +86,19 @@ export class IngressRouteSetConf {
     return this.parent.parent.coreV1Api;
   }
 
-  public visitPod(pod: V1Pod, removed?: boolean): IngressRouteSetConf | null {
+  public visitPod(pod: V1Pod, removed?: boolean): VisitePodSummery {
+    const result: VisitePodSummery = { };
     const { metadata, spec } = pod;
-    if (!metadata || !spec) return null;
-    if (!metadata.name) return null;
+    if (!metadata || !spec) return result;
+    if (!metadata.name) return result;
     if (metadata.generateName !== this.generateName) {
       const diffKey = `${metadata.generateName}=${this.generateName}`;
       if (!this.seenPrefix.has(diffKey)) {
-        console.log(`pod ${formatName(metadata.name)} with prefix ${formatName(metadata.generateName || '')} do not match ${formatName(this.generateName)}, Skip, Should be Ok.`)
+        result.expect = this.generateName
+        // `pod ${formatName(metadata.name)} with prefix ${formatName(metadata.generateName || '')} do not match ${formatName(this.generateName)}, Skip, Should be Ok.`;
         this.seenPrefix.add(diffKey);
       }
-      return null;
+      return result;
     }
     if (removed) {
       this.nodeList.delete(metadata.name);
@@ -108,7 +115,8 @@ export class IngressRouteSetConf {
     }
     this.parent.change();
     // TODO add code
-    return this;
+    result.conf = this;
+    return result;
   }
 
   private async delPodService(pod: V1Pod) {

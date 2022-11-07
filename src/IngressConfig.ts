@@ -1,4 +1,4 @@
-import { V1Pod, V1Ingress } from "@kubernetes/client-node";
+import { V1Pod, V1Ingress, V1ObjectMeta } from "@kubernetes/client-node";
 import { debounce } from "throttle-debounce";
 import { IngressRouteSetConf } from "./IngressRouteSetConf";
 import { Config } from "./config";
@@ -32,9 +32,24 @@ export class IngressConfig {
 
   public visitPod(pod: V1Pod, removed?: boolean): IngressRouteSetConf[] {
     const routes: IngressRouteSetConf[] = [];
+    const expects = [] as string[];
+    /**
+     * iterate all environement confifs
+     */
     for (const child of this.configs.values()) {
       const m = child.visitPod(pod, removed);
-      if (m) routes.push(m);
+      if (m.conf) routes.push(m.conf);
+      else if (m.expect) {
+        expects.push(m.expect);
+      }
+    }
+    if (!routes.length && expects.length) {
+      const metadata: V1ObjectMeta = pod.metadata!;
+      console.log(`pod ${formatName(metadata.name || '?')} with prefix ${formatName(metadata.generateName || '?')} do not match any expected prefix: ${expects.map(formatName).join(', ')}, Skip, Should be Ok.`);
+//
+//      for (const result of results)
+//        if (result.logs)
+//          console.log(result.logs)
     }
     return routes;
   }
