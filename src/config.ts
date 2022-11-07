@@ -121,7 +121,6 @@ export class Config {
       console.log("ingresses feature not configured");
       return;
     }
-    // console.log(`Start watching ingress in namespaces ${JSON.stringify([...this.#namespaces].join(', '))}`);
     console.log(`Start watching ingress in namespaces ${[...this.#namespaces].map(formatNameSpace)}`);
     for (const namespace of this.#namespaces) void this.watchIngress(namespace);
   }
@@ -132,7 +131,6 @@ export class Config {
     let errorCnt = 0;
     for (; ;) {
       try {
-        // console.log("Watching", url);
         const watching = new Promise<void>((resolve, reject) => {
           void watch.watch(
             url,

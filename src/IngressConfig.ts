@@ -46,10 +46,6 @@ export class IngressConfig {
     if (!routes.length && expects.length) {
       const metadata: V1ObjectMeta = pod.metadata!;
       console.log(`pod ${formatName(metadata.name || '?')} with prefix ${formatName(metadata.generateName || '?')} do not match any expected prefix: ${expects.map(formatName).join(', ')}, Skip, Should be Ok.`);
-//
-//      for (const result of results)
-//        if (result.logs)
-//          console.log(result.logs)
     }
     return routes;
   }
@@ -71,11 +67,6 @@ export class IngressConfig {
     // const INGRESS_HOST = config.INGRESS_HOST[confId];
     this.prevNode = newListTxt;
     const routes = [] as string[];
-    // console.log(
-    //   "Live pods:",
-    //   [...this.nodeList.values()].map((n) => `${n.podName} on Node ${n.nodeName}`),
-    // );
-    // const ingress = this.ingresses[confId];
     if (!ingress.spec) ingress.spec = {};
     const spec = ingress.spec;
     if (!spec.rules) spec.rules = [];
@@ -97,7 +88,7 @@ export class IngressConfig {
         const path = sub.prefix.replace("NODENAME", nodeName);
         const name = `${servicePrefix}${nodeName}`;
         const pathType = "Prefix";
-        routes.push(`- ${pathType}:${formatPrefix(path)} to service ${formatName(name)}:${formatNumber(sub.port)}`)
+        routes.push(`- ${pathType}:${formatPrefix(path.padEnd(15, ' '))} to service ${formatName(name)}:${formatNumber(sub.port)}`)
         paths.push({
           path,
           pathType,
@@ -127,7 +118,7 @@ export class IngressConfig {
           const path = prefixBase;
           const name = this.parent.selfServiceName;
           const pathType = "Exact";
-          routes.push(`- ${pathType}:${formatPrefix(path)} to service ${formatName(name)}:${formatNumber(this.parent.HTTP_PORT)}`)
+          routes.push(`-  ${pathType}:${formatPrefix(path.padEnd(15, ' '))} to service ${formatName(name)}:${formatNumber(this.parent.HTTP_PORT)}`)
           paths.push({
             path,
             pathType,
