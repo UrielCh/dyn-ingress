@@ -1,8 +1,8 @@
-import { V1Pod, V1Ingress, V1ObjectMeta } from "@kubernetes/client-node";
+import { V1Pod, V1Ingress } from "@kubernetes/client-node";
 import { debounce } from "throttle-debounce";
 import { IngressRouteSetConf } from "./IngressRouteSetConf";
 import { Config } from "./config";
-import { formatName, formatNumber, formatPrefix, formatResource, logWatchError } from "./utils";
+import { logWatchError } from "./utils";
 
 export class IngressConfig {
   public ingress: V1Ingress | null = null;
@@ -24,28 +24,16 @@ export class IngressConfig {
 
   public validate(parent: string): void {
     for (const [id, ing] of this.configs.entries()) {
-      const key = `${parent}.${id}`;
-      ing.validate(key);
-      console.log(`"${formatName(key)}" routeSet is valid`);
+      ing.validate(`${parent}.${id}`);
+      console.log(`"${parent}.${id}" routeSet is valid`);
     }
   }
 
   public visitPod(pod: V1Pod, removed?: boolean): IngressRouteSetConf[] {
     const routes: IngressRouteSetConf[] = [];
-    const expects = [] as string[];
-    /**
-     * iterate all environement confifs
-     */
     for (const child of this.configs.values()) {
       const m = child.visitPod(pod, removed);
-      if (m.conf) routes.push(m.conf);
-      else if (m.expect) {
-        expects.push(m.expect);
-      }
-    }
-    if (!routes.length && expects.length) {
-      const metadata: V1ObjectMeta = pod.metadata!;
-      console.log(`pod ${formatName(metadata.name || '?')} with prefix ${formatName(metadata.generateName || '?')} do not match any expected prefix: ${expects.map(formatName).join(', ')}, Skip, Should be Ok.`);
+      if (m) routes.push(m);
     }
     return routes;
   }
@@ -67,6 +55,11 @@ export class IngressConfig {
     // const INGRESS_HOST = config.INGRESS_HOST[confId];
     this.prevNode = newListTxt;
     const routes = [] as string[];
+    // console.log(
+    //   "Live pods:",
+    //   [...this.nodeList.values()].map((n) => `${n.podName} on Node ${n.nodeName}`),
+    // );
+    // const ingress = this.ingresses[confId];
     if (!ingress.spec) ingress.spec = {};
     const spec = ingress.spec;
     if (!spec.rules) spec.rules = [];
@@ -88,7 +81,7 @@ export class IngressConfig {
         const path = sub.prefix.replace("NODENAME", nodeName);
         const name = `${servicePrefix}${nodeName}`;
         const pathType = "Prefix";
-        routes.push(`- ${pathType}:${formatPrefix(path.padEnd(15, ' '))} to service ${formatName(name)}:${formatNumber(sub.port)}`)
+        routes.push(`- ${pathType}:${path} to ${name}:${sub.port}`)
         paths.push({
           path,
           pathType,
@@ -109,16 +102,12 @@ export class IngressConfig {
       for (const sub of this.configs.values()) {
         // drop old rules, and rewrite thems
         // const servicePrefix = `${sub.generateName}service-`;
-        const prefixBases = [sub.prefixBase];
-        if (sub.prefixBase.length > 1) { // never add an empty route.
-          prefixBases.push(sub.prefixBase.replace(/\/$/, ""));
-        }
-        for (const prefixBase of prefixBases) {
+        for (const prefixBase of [sub.prefixBase, sub.prefixBase.replace(/\/$/, "")]) {
           paths = paths.filter((elm) => elm.path !== prefixBase);
           const path = prefixBase;
           const name = this.parent.selfServiceName;
           const pathType = "Exact";
-          routes.push(`-  ${pathType}:${formatPrefix(path.padEnd(15, ' '))} to service ${formatName(name)}:${formatNumber(this.parent.HTTP_PORT)}`)
+          routes.push(`- ${pathType}:${path} to ${name}:${this.parent.HTTP_PORT}`)
           paths.push({
             path,
             pathType,
@@ -147,19 +136,17 @@ export class IngressConfig {
     try {
       const { response } = await this.parent.networkingV1Api.replaceNamespacedIngress(this.ingressName, this.namespace, ingress);
       if (response.statusCode !== 200) {
-        console.log(`Update ingress ${formatResource(this.namespace, this.ingressName)} update failed code: ${response.statusCode}`);
+        console.log(`Update ingress ${this.namespace}.${this.ingressName} update failed code: ${response.statusCode}`);
       } else {
-        const msg = `Update ingress ${formatResource(this.namespace, this.ingressName)} with ${formatNumber(routes.length)} routes:\n${routes.join("\n")}`;
+        const msg = `Update ingress ${this.namespace}.${this.ingressName} with ${routes.length} routes:\n${routes.join("\n")}`;
         if (msg !== this.lastupdateIngressMessage) {
           // TODO compare with previous ingress bf update
-          console.log(`Updating ingress: ${formatResource(this.namespace, this.ingressName)}:`)
           console.log(msg)
-          console.log()
           this.lastupdateIngressMessage = msg
         }
       }
     } catch (e) {
-      await logWatchError(`PUT ${this.parent.coreV1Api.basePath}/apis/networking.k8s.io/v1/namespaces/${this.namespace}/ingresses/${this.ingressName}`, e, 0);
+      await logWatchError(`PUT /apis/networking.k8s.io/v1/namespaces/${this.namespace}/ingresses/${name}`, e, 0);
     }
   }
 }

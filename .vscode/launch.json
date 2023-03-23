@@ -7,79 +7,45 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "start Ingresses Whoam I",
+      "name": "start Ingresses",
       "args": [
-        "${workspaceFolder}/src/index.ts"
+          "${workspaceFolder}/src/index.ts"
       ],
       "runtimeArgs": [
-        "--nolazy",
-        "-r",
-        "ts-node/register",
-        // "-r",
-        // "tsconfig-paths/register"
+          "--nolazy",
+          "-r",
+          "ts-node/register",
+          // "-r",
+          // "tsconfig-paths/register"
       ],
       "sourceMaps": true,
       "cwd": "${workspaceRoot}",
       "console": "integratedTerminal",
       "env": {
-        "LABEL.all": "1",
-        "KUBCONFIG_NAME": "o2",
+        "LABEL.all" : "1",
         "LABEL.nodename": "nodename",
-        "HTTP_PORT": "80",
+        "HTTP_PORT": "8080",
         "SELF_SELECTOR": "app=dyn-ingress",
         "INGRESS.default.remote-droid-ingress.host": "",
+        
+        "INGRESS.default.remote-droid-ingress.1.name": "remote-droid",
+        "INGRESS.default.remote-droid-ingress.1.selector": "app=remote-droid",
+        "INGRESS.default.remote-droid-ingress.1.prefix": "/remote/NODENAME",
+        "INGRESS.default.remote-droid-ingress.1.port": "3009",
+        "INGRESS.default.remote-droid-ingress.1.targetPort": "3009",
 
-        "INGRESS.default.whoami-ingress.1.name": "whoami-ds",
-        "INGRESS.default.whoami-ingress.1.selector": "app=whoami-app",
-        "INGRESS.default.whoami-ingress.1.prefix": "/NODENAME",
-        "INGRESS.default.whoami-ingress.1.port": "80",
-        "INGRESS.default.whoami-ingress.1.targetPort": "80",
+        "INGRESS.default.remote-droid-ingress.2.name": "pilot-droid",
+        "INGRESS.default.remote-droid-ingress.2.selector": "app=pilot-droid",
+        "INGRESS.default.remote-droid-ingress.2.prefix": "/pilot/NODENAME",
+        "INGRESS.default.remote-droid-ingress.2.port": "3010",
+        "INGRESS.default.remote-droid-ingress.2.targetPort": "3010",
+
+        "INGRESS.default.remote-droid-ingress.3.name": "pilot-droid",
+        "INGRESS.default.remote-droid-ingress.3.selector": "app=pilot-droid",
+        "INGRESS.default.remote-droid-ingress.3.prefix": "/debug/NODENAME",
+        "INGRESS.default.remote-droid-ingress.3.port": "9229",
+        "INGRESS.default.remote-droid-ingress.3.targetPort": "9229",
       }
-    },
-    {
-    "type": "node",
-    "request": "launch",
-    "name": "start Ingresses",
-    "args": [
-      "${workspaceFolder}/src/index.ts"
-    ],
-    "runtimeArgs": [
-      "--nolazy",
-      "-r",
-      "ts-node/register",
-      // "-r",
-      // "tsconfig-paths/register"
-    ],
-    "sourceMaps": true,
-    "cwd": "${workspaceRoot}",
-    "console": "integratedTerminal",
-    "env": {
-      "LABEL.all": "1",
-      "KUBCONFIG_NAME": "config",
-      "LABEL.nodename": "nodename",
-      "HTTP_PORT": "8080",
-      "SELF_SELECTOR": "app=dyn-ingress",
-      "INGRESS.default.remote-droid-ingress.host": "",
-
-      "INGRESS.default.remote-droid-ingress.1.name": "remote-droid",
-      "INGRESS.default.remote-droid-ingress.1.selector": "app=remote-droid",
-      "INGRESS.default.remote-droid-ingress.1.prefix": "/remote/NODENAME",
-      "INGRESS.default.remote-droid-ingress.1.port": "3009",
-      "INGRESS.default.remote-droid-ingress.1.targetPort": "3009",
-
-      "INGRESS.default.remote-droid-ingress.2.name": "pilot-droid",
-      "INGRESS.default.remote-droid-ingress.2.selector": "app=pilot-droid",
-      "INGRESS.default.remote-droid-ingress.2.prefix": "/pilot/NODENAME",
-      "INGRESS.default.remote-droid-ingress.2.port": "3010",
-      "INGRESS.default.remote-droid-ingress.2.targetPort": "3010",
-
-      "INGRESS.default.remote-droid-ingress.3.name": "pilot-droid",
-      "INGRESS.default.remote-droid-ingress.3.selector": "app=pilot-droid",
-      "INGRESS.default.remote-droid-ingress.3.prefix": "/debug/NODENAME",
-      "INGRESS.default.remote-droid-ingress.3.port": "9229",
-      "INGRESS.default.remote-droid-ingress.3.targetPort": "9229",
-    }
   },
-
-]
+  ]
 }

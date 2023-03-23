@@ -1,6 +1,5 @@
 import { CoreV1Api, V1Pod, V1Service, HttpError } from "@kubernetes/client-node";
 import { IngressConfig } from "./IngressConfig";
-import { formatName } from "./utils";
 
 interface PodData {
   //  podName: string;
@@ -22,11 +21,6 @@ function isPodValid(pod: V1Pod): boolean {
 
 type Podname = string;
 
-export interface VisitePodSummery {
-  conf?: IngressRouteSetConf,
-  expect?: string
-}
-
 export class IngressRouteSetConf {
   public name = "";
   public selectorKey = "";
@@ -36,7 +30,6 @@ export class IngressRouteSetConf {
   public port = 0;
   public targetPort = 0;
   public generateName = "-";
-  private seenPrefix = new Set<string>();
 
   constructor(private parent: IngressConfig) { }
 
@@ -86,20 +79,11 @@ export class IngressRouteSetConf {
     return this.parent.parent.coreV1Api;
   }
 
-  public visitPod(pod: V1Pod, removed?: boolean): VisitePodSummery {
-    const result: VisitePodSummery = { };
+  public visitPod(pod: V1Pod, removed?: boolean): IngressRouteSetConf | null {
     const { metadata, spec } = pod;
-    if (!metadata || !spec) return result;
-    if (!metadata.name) return result;
-    if (metadata.generateName !== this.generateName) {
-      const diffKey = `${metadata.generateName}=${this.generateName}`;
-      if (!this.seenPrefix.has(diffKey)) {
-        result.expect = this.generateName
-        // `pod ${formatName(metadata.name)} with prefix ${formatName(metadata.generateName || '')} do not match ${formatName(this.generateName)}, Skip, Should be Ok.`;
-        this.seenPrefix.add(diffKey);
-      }
-      return result;
-    }
+    if (!metadata || !spec) return null;
+    if (!metadata.name) return null;
+    if (metadata.generateName !== this.generateName) return null;
     if (removed) {
       this.nodeList.delete(metadata.name);
       this.delPodService(pod);
@@ -115,8 +99,7 @@ export class IngressRouteSetConf {
     }
     this.parent.change();
     // TODO add code
-    result.conf = this;
-    return result;
+    return this;
   }
 
   private async delPodService(pod: V1Pod) {

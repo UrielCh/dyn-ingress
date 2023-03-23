@@ -1,14 +1,12 @@
 import { KubeConfig, NetworkingV1Api, CoreV1Api, Watch, V1Pod, V1Ingress, PatchUtils, V1Service, HttpError } from "@kubernetes/client-node";
 import { IngressRouteSetConf } from "./IngressRouteSetConf";
 import { IngressConfig } from "./IngressConfig";
-import { formatName, formatNameSpace, formatResource, logWatchError } from "./utils";
+import { logWatchError } from "./utils";
 
 export class Config {
   public readonly LABEL_NODE_NAME: string;
   public readonly SELF_SELECTOR: string;
   public readonly networkingV1Api: NetworkingV1Api;
-  private seenIngress = new Set<string>();
-
   #selfServiceName = "";
   /**
    * if set will add label on all pods in the selected namespace
@@ -40,7 +38,7 @@ export class Config {
       if (!m) continue;
       const [, namespace, ingressName, idStr, k] = m;
       const ingressKey = `${namespace}.${ingressName}`;
-      this.addNamespaces(namespace, `discover key: "${formatName(key)}"`);
+      this.addNamespaces(namespace, `discover key: "${key}"`);
       let slot = this.ingresses.get(ingressKey);
       if (!slot) {
         slot = new IngressConfig(this, namespace, ingressName);
@@ -79,16 +77,15 @@ export class Config {
     for (const namespace of this.#namespaces) {
       try {
         await this.coreV1Api.createNamespacedService(namespace, body);
-        console.log(`POST ${this.coreV1Api.basePath}/api/v1/namespaces/${namespace}/services ${this.#selfServiceName} Done`);
       } catch (e: unknown) {
         if (e instanceof HttpError && e.statusCode === 409) {
           try {
             await this.coreV1Api.replaceNamespacedService(this.#selfServiceName, namespace, body);
           } catch (e2) {
-            await logWatchError(`POST ${this.coreV1Api.basePath}/api/v1/namespaces/${namespace}/services`, e2, 0);
+            await logWatchError(`POST /api/v1/namespaces/${namespace}/services`, e2, 0);
           }
         } else {
-          await logWatchError(`PUT ${this.coreV1Api.basePath}/api/v1/namespaces/${namespace}/services`, e, 0);
+          await logWatchError(`PUT /api/v1/namespaces/${namespace}/services`, e, 0);
         }
         // console.error(`failed to create Namespaced Service ${namespace}.${this.#selfServiceName} errorCode:${e.}`);
       }
@@ -97,7 +94,7 @@ export class Config {
 
   private addNamespaces(namespace: string, reason: string) {
     if (!this.#namespaces.has(namespace)) {
-      console.log(`Watching namespace ${formatNameSpace(namespace)} cause by ${reason}`);
+      console.log(`Watching namespace "${namespace}" cause by ${reason}`);
       this.#namespaces.add(namespace);
     }
   }
@@ -107,9 +104,8 @@ export class Config {
    */
   public validate(): void {
     for (const [id, ing] of this.ingresses.entries()) {
-      const key = `INGRESS.${id}`;
-      ing.validate(key);
-      console.log(`"${formatName(key)}" ingress config is valid`);
+      ing.validate(`INGRESS.${id}`);
+      console.log(`"INGRESS.${id}" ingress config is valid`);
     }
   }
 
@@ -121,7 +117,7 @@ export class Config {
       console.log("ingresses feature not configured");
       return;
     }
-    console.log(`Start watching ingress in namespaces ${[...this.#namespaces].map(formatNameSpace)}`);
+    console.log(`Start watching ingress in namespaces ${JSON.stringify([...this.#namespaces].join(', '))}`);
     for (const namespace of this.#namespaces) void this.watchIngress(namespace);
   }
 
@@ -131,22 +127,17 @@ export class Config {
     let errorCnt = 0;
     for (; ;) {
       try {
+        // console.log("Watching", url);
         const watching = new Promise<void>((resolve, reject) => {
           void watch.watch(
             url,
             {},
             (phase: string | "ADDED" | "MODIFIED" | "DELETED", ingress: V1Ingress) => {
-              const ingressName = ingress.metadata?.name || '';
+              const ingressName = ingress.metadata?.name;
               const ingressKey = `${namespace}.${ingressName}`;
               const ingressData = this.ingresses.get(ingressKey);
-              if (!ingressData) {
-                if (!this.seenIngress.has(ingressKey)) {
-                  console.log(`No matching rule for ingress "${formatResource(namespace, ingressName)}", Skip, should be ok`);
-                  this.seenIngress.add(ingressKey);
-                }
-                return;
-              }
-              if (!ingressData.ingress) console.log(`Attach to ingress "${formatResource(namespace, ingressName)}"`);
+              if (!ingressData) return;
+              if (!ingressData.ingress) console.log(`Attach to ingress "${ingressKey}"`);
               ingressData.ingress = ingress;
             },
             (err: unknown) => {
@@ -176,8 +167,7 @@ export class Config {
   }
 
   public watchPods(): void {
-    // console.log(`Start watching pods in namespaces ${[...this.#namespaces].join(', ')}`);
-    console.log(`Start watching pods in namespaces ${[...this.#namespaces].map(formatNameSpace)}`);
+    console.log(`Start watching pods in namespaces ${[...this.#namespaces].join(', ')}`);
     for (const namespace of this.#namespaces) void this.watchPod(namespace);
   }
 
@@ -185,23 +175,14 @@ export class Config {
    * Tag pod with extra labels
    * @param pod the pod
    */
-  async ensurePodLabel(pod: V1Pod): Promise<IngressRouteSetConf[]> {
+  async ensurePodLabel(pod: V1Pod): Promise<IngressRouteSetConf[] | null> {
     const { metadata, spec } = pod;
-    if (!spec || !metadata) return [];
+    if (!spec || !metadata) return null;
     if (!metadata.labels) metadata.labels = {};
     const confs = this.visitPod(pod);
-    if (!confs.length && !this.LABEL_ALL) {
-      return [];
-    }
-    if (!metadata || !metadata.name || !metadata.namespace) {
-      console.error('visit a pod with no name or no namespace, ODD');
-      // no name or namespace shoul;d not append
-      return []
-    };
-    if (metadata.labels[this.LABEL_NODE_NAME] === spec.nodeName) {
-      // all ready patched
-      return confs;
-    }
+    if (!confs.length || !this.LABEL_ALL) return null;
+    if (!metadata || !metadata.name || !metadata.namespace) return null;
+    if (metadata.labels[this.LABEL_NODE_NAME] === spec.nodeName) return confs;
     const body = [];
     body.push({ op: "add", path: `/metadata/labels/${this.LABEL_NODE_NAME}`, value: spec.nodeName });
     //if (config.LABEL_NAMESPACE && pod.metadata.namespace)
@@ -209,7 +190,7 @@ export class Config {
     //if (config.LABEL_POD_NAME && pod.metadata.name)
     //  body.push({ op: "add", path: `/metadata/labels/${config.LABEL_POD_NAME}`, value: pod.metadata.name });
     const options = { headers: { "Content-type": PatchUtils.PATCH_FORMAT_JSON_PATCH } };
-    console.log(`Patching pod ${formatResource(metadata.namespace, metadata.name)} with label:${this.LABEL_NODE_NAME}=${spec.nodeName}`);
+    console.log(`Patching pod ${metadata.namespace}.${metadata.name} with label:${this.LABEL_NODE_NAME}=${spec.nodeName}`);
     await this.coreV1Api.patchNamespacedPod(metadata.name, metadata.namespace, body, undefined, undefined, undefined, undefined, undefined, options);
     return confs;
   }
@@ -217,7 +198,6 @@ export class Config {
   private async watchPod(namespace: string): Promise<never> {
     const watch = new Watch(this.kubeConfig);
     const url = `/api/v1/namespaces/${namespace}/pods`;
-    const fullUrl = `${this.coreV1Api.basePath}${url}`;
     let errorCnt = 0;
     for (; ;) {
       try {
@@ -243,7 +223,7 @@ export class Config {
         await watching;
         errorCnt = 0;
       } catch (e) {
-        await logWatchError(fullUrl, e, ++errorCnt);
+        await logWatchError(url, e, ++errorCnt);
       }
     }
   }

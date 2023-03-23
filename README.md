@@ -230,10 +230,6 @@ spec:
       port: 8080
       targetPort: 8080
 ```
-### Extra ENV var:
-
-- "KUBCONFIG_NAME" default value id "default" used to locate kube config in ${home}/.kube/${KUBCONFIG_NAME}
-- "NO_COLOR" disable ANSI color usage in log
 
 ### TODO:
 

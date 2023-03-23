@@ -1,7 +1,5 @@
 import http, { IncomingMessage, Server, ServerResponse } from "http";
-import { format } from "path";
 import { Config } from "./config";
-import { formatName, formatNumber } from "./utils";
 
 const HEADERS_JSON = { "Content-Type": "application/json" };
 const HEADERS_HTML = { "Content-Type": "text/html; charset=utf-8" };
@@ -67,7 +65,7 @@ export class WebServer {
         }
       });
       this.server.listen(this.config.HTTP_PORT, () => {
-        console.log(`Listening to port: ${formatNumber(this.config.HTTP_PORT)} for service ${formatName(this.config.selfServiceName)}`);
+        console.log(`Listening to port: ${this.config.HTTP_PORT} for service "${this.config.selfServiceName}"`)
       });
   }
   stop(): void {
